@@ -137,6 +137,8 @@ cout << "count : " << count << endl;
 
 #include <iostream>
 #include <bitset>
+#include <string>
+
 using namespace std;
 
 /*
@@ -173,5 +175,195 @@ int main()
 	cout << "\n결과 : " << bitset<8>((int)num) << endl;
 	return 0;
 }
+
+// 실습 4번
+int main()
+{
+	unsigned int num = 0b11011010;
+	num = num & (1 << 4);
+	cout << "결과 : " << (int)num;
+	cout << "\n결과 : " << bitset<8>((int)num) << endl;
+	return 0;
+}
+
+// 실습 5번
+int main()
+{
+	unsigned int num = 0b11011011;
+	num = num % 2;
+	cout << "결과 : " << (int)num;
+	cout << "\n결과 : " << bitset<8>((int)num) << endl;
+	return 0;
+}
+
+// 실습 6번
+int main()
+{
+	//unsigned int num = 0b11011011;
+	//unsigned int num = 0b11011010;
+	unsigned int num = 0b100000000;
+
+	bool TwoCheck = (num != 0) && ((num & (num - 1)) == 0);
+	cout << "결과 : " << TwoCheck << endl;
+	return 0;
+}
+
 */
 
+int num = 10;
+
+if (num > 0)
+{
+	cout << "양수입니다." << endl;
+}
+// -10을 넣게되면 아무것도 나오지 않음.
+
+else if (num < 0)
+{
+	cout << "음수입니다." << endl;
+}
+else
+{
+	cout << "0입니다." << endl;
+}
+
+
+
+// if 실습 1
+int main()
+{
+	int age;
+	cout << "나이를 입력하세요: ";
+	cin >> age;
+
+	if (age >= 100)
+	{
+		cout << "건강하세요" << endl;
+	}
+
+	else if (age >= 1 && age <= 7)
+	{
+		cout << "애송이" << endl;
+	}
+
+	else if (age >= 8 && age <= 13)
+	{
+		cout << "초등학생" << endl;
+	}
+
+	else if (age >= 14 && age <= 16)
+	{
+		cout << "중학생" << endl;
+	}
+
+	else if (age >= 17 && age <= 19) {
+		cout << "고등학생" << endl;
+	}
+
+	else if (age >= 20) {
+		cout << "성인" << endl;
+	}
+
+	return 0;
+}
+
+
+// if 실습 2
+int main()
+{
+	string Name;
+	cout << "이름을 입력해주세요." << endl;
+	cin >> Name;
+
+	if (Name == "홍길동")
+	{
+		cout << "남자입니다." << endl;
+	}
+	else if (Name == "성춘향")
+	{
+		cout << "여자입니다." << endl;
+	}
+	else
+	{
+		cout << "몰루" << endl;
+	}
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+// 실습 1 배열 연습 (1)
+
+/*
+#include <iostream>
+using namespace std;
+
+int main()
+{
+	string City[] = { "한국", "북한", "미국", "맥시코", "일본" };
+
+	int size = sizeof(City) / sizeof(City[0]);
+
+	for (int i = 0; i < size; i++)
+	{
+	   cout << City[i] << endl;
+	}
+
+	return 0;
+}
+
+
+// 실습 2 배열 연습 (2)
+
+#include <iostream>
+using namespace std;
+
+
+int main()
+{
+	string City2[5];
+
+	for (int i = 0; i < 5; i++)
+	{
+		cin >> City2[i];
+	}
+
+	int size = sizeof(City2) / sizeof(City2[0]);
+
+	for (int i = 0; i < size; i++)
+	{
+		cout << City2[i] << endl;
+	}
+
+	return 0;
+}
+*/
+    #include <iostream>
+    using namespace std;
+
+    int main()
+    {
+        // 실습 3 배열 연습 (3)
+        int grade[5]; // 학생들의 성적
+        int total = 0; // 학생들의 모든 점수
+
+        for (int i = 0; i < 5; i++)
+        {
+            cout << i << "번 학생의 성적을 입력해주세요 : ";
+            cin >> grade[i];
+            total += grade[i];
+        }
+
+        // 평균 계산
+        double average = static_cast<double>(total) / 5;
+        cout << "학생들의 평균 성적은 : " << average << endl;
+        cout << "학생들의 평균 성적은 : " << total / 5 << endl;
+
+        return 0;
+    }
