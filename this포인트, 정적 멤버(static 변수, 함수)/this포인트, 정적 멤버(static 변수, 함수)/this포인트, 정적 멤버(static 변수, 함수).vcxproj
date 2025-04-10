@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{15577667-8507-422f-80d8-ade54a4ae2d3}</ProjectGuid>
-    <RootNamespace>구조체</RootNamespace>
+    <ProjectGuid>{f2bd8316-7072-427b-9750-43e41338f4ee}</ProjectGuid>
+    <RootNamespace>this포인트정적멤버static변수함수</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="구조체.cpp" />
+    <ClCompile Include="클래스.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

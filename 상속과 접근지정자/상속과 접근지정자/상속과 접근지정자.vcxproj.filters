@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="구조체.cpp">
+    <ClCompile Include="상속.cpp">
       <Filter>헤더 파일</Filter>
     </ClCompile>
   </ItemGroup>
