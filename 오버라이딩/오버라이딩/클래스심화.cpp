@@ -210,62 +210,70 @@ else
 
 // 실습3. 오버라이딩 - 자동차 가속 기능 구현
 #include <iostream>
+
 using namespace std;
 
 class Vehicle 
 {
-public:
-	virtual void accelerate() 
+public :
+	void accelerate()
 	{
-		cout << "자동차 유형을 선택하세요: " << endl;
+		cout << "자동차 시속 30km 증가!" << endl;
 	}
 };
 
 class Car : public Vehicle 
 {
 public:
-	void accelerate() override 
+	void accelerate() 
 	{
-		cout << "Car - 일반" << endl;
-	}
-};
-
-class SportsCar : public Vehicle 
-{
-public:
-	void accelerate() override 
-	{
-		cout << "SportsCar 스포츠카" << endl;
+		cout << "자동차 시속 30km 증가!" << endl;
 	}
 };
 
 class Truck : public Vehicle 
 {
 public:
-	void accelerate() override
+	void accelerate() 
 	{
-		cout << "Truck 트럭" << endl;
+		cout << "트럭 시속 20km 증가!" << endl;
+	}
+};
+class SportsCar : public Vehicle 
+{
+public:
+	void accelerate() 
+	{
+		cout << "스포츠카 시속 50km 증가!" << endl;
 	}
 };
 
-void main() 
+int main()
 {
-	Vehicle* vehicles[] = { new Car(), new SportsCar(), new Truck() };
-
-	for (Vehicle* vehicle : vehicles) 
+	cout << "자동차 유형을 선택하세요 :\n1. Car (일반 자동차)\n2. Truck (트럭)\n3. SportsCar (스포츠카)\n입력 : " << endl;
+	int choice;
+	cin >> choice;
+	if (choice == 1) 
 	{
-		vehicle->accelerate();
+		Car car;
+		car.accelerate();
 	}
-
-	for (Vehicle* vehicle : vehicles) 
+	else if (choice == 2) 
 	{
-		delete vehicle;
+		Truck truck;
+		truck.accelerate();
+	}
+	else if (choice == 3) 
+	{
+		SportsCar sportsCar;
+		sportsCar.accelerate();
+	}
+	else 
+	{
+		cout << "잘못된 선택입니다." << endl;
 	}
 }
 */
-
-
-// 추상 클래스
 
 #include <iostream>
 using namespace std;
@@ -277,9 +285,9 @@ public:
 };
 
 class Dog : public Animal
-{ 
+{
 public:
-	void sonud() override
+	void speak() override
 	{
 		cout << "멍멍!" << endl;
 	}
@@ -288,7 +296,7 @@ public:
 class Cat : public Animal
 {
 public:
-	void sound() override
+	void speak() override
 	{
 		cout << "야옹!" << endl;
 	}
@@ -300,12 +308,155 @@ int main()
 
 	for (Animal* a : animals)
 	{
-		a->sound(); // 동적 바인딩
+		a->speak(); // 동적 바인딩
+	}
+
+	// 메모리 해제
+	for (Animal* a : animals)
+	{
+		delete a;
 	}
 
 	return 0;
 }
 
-//실습자동차부터 수정학;
-// 실습 4. 과자, 사탕, 초콜릿
-// 실습 5, ai챗봇 시스템 설계
+//실습 4. 과자, 사탕, 초콜릿
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+// 추상 클래스 Snack
+class Snack 
+{
+protected:
+	string productName;
+	string company;
+	int price;
+
+public:
+	Snack(string name, string comp, int pr)
+		: productName(name), company(comp), price(pr) {}
+
+	virtual void printInfo() const = 0; // 순수 가상 함수
+	virtual ~Snack() {} // 소멸자도 가상으로
+};
+
+// Candy 클래스
+class Candy : public Snack 
+{
+private:
+	string taste;
+
+public:
+	Candy(string name, string comp, int pr, string t)
+		: Snack(name, comp, pr), taste(t) {}
+
+	void printInfo() const override 
+	{
+		cout << "[Candy] " << productName << ", " << company << ", "
+			<< price << "원, Taste: " << taste << endl;
+	}
+};
+
+// Chocolate 클래스
+class Chocolate : public Snack 
+{
+private:
+	string shape;
+
+public:
+	Chocolate(string name, string comp, int pr, string sh)
+		: Snack(name, comp, pr), shape(sh) {}
+
+	void printInfo() const override 
+	{
+		cout << "[Chocolate] " << productName << ", " << company << ", "
+			<< price << "원, Shape: " << shape << endl;
+	}
+};
+
+int main() 
+{
+	// Snack 포인터 배열
+	Snack* snackBasket[4];
+
+	// Candy 객체 2개
+	snackBasket[0] = new Candy("SweetBerry", "CandyCo", 500, "Strawberry");
+	snackBasket[1] = new Candy("MintyFresh", "FreshCandy", 600, "Mint");
+
+	// Chocolate 객체 2개
+	snackBasket[2] = new Chocolate("ChocoStar", "ChocoWorld", 1000, "Star");
+	snackBasket[3] = new Chocolate("BlockChoco", "SweetBar", 1200, "Block");
+
+	// 모든 간식 정보 출력
+	for (int i = 0; i < 4; ++i) {
+		snackBasket[i]->printInfo();
+	}
+
+	// 메모리 해제
+	for (int i = 0; i < 4; ++i) {
+		delete snackBasket[i];
+	}
+
+	return 0;
+}
+
+//실습 5. AI 챗봇 시스템 설계
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+// 추상 클래스 Chatbot
+class Chatbot {
+public:
+	virtual void respond(const string& message) = 0; // 순수 가상 함수
+	virtual ~Chatbot() {} // 가상 소멸자
+};
+
+// 고객 지원 봇
+class CustomerSupportBot : public Chatbot {
+public:
+	void respond(const string& message) override {
+		cout << "고객 지원 문의를 처리합니다: " << message << endl;
+	}
+};
+
+// 날씨 봇
+class WeatherBot : public Chatbot {
+public:
+	void respond(const string& message) override {
+		cout << "현재 날씨 정보를 제공합니다: " << message << endl;
+	}
+};
+
+// 메인 함수
+int main() {
+	Chatbot* bot = nullptr;
+	string userInput;
+	int choice;
+
+	cout << "챗봇을 선택하세요:\n1. 고객 지원 봇\n2. 날씨 봇\n선택: ";
+	cin >> choice;
+	cin.ignore(); // 입력 버퍼 비우기
+
+	cout << "메시지를 입력하세요: ";
+	getline(cin, userInput);
+
+	if (choice == 1) {
+		bot = new CustomerSupportBot();
+	}
+	else if (choice == 2) {
+		bot = new WeatherBot();
+	}
+	else {
+		cout << "잘못된 선택입니다." << endl;
+		return 1;
+	}
+
+	bot->respond(userInput);
+
+	delete bot;
+	return 0;
+}
