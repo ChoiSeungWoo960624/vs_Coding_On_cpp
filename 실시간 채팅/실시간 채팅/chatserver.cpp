@@ -1,4 +1,5 @@
-#include <winsock2.h>
+ï»¿
+ï»¿#include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iostream>
 #include <vector>
@@ -7,75 +8,101 @@
 #include <algorithm>
 #include <csignal>
 #include <ctime>
+#include <map>
+#include <windows.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
-// ¼­¹ö°¡ ½ÃµµÇÒ Æ÷Æ® ¹øÈ£ ¹üÀ§ ¼³Á¤
-#define PORT_START 15410 // ½ÃÀÛ Æ÷Æ® ¹øÈ£
-#define PORT_END   33333 // Á¾·á Æ÷Æ® ¹øÈ£
+std::map<SOCKET, std::string> client_names; // í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ê³¼ ë‹‰ë„¤ì„ì„ ì„œë¡œ í†µìš©í•œë‹¤.
 
-#define MAX_CLIENTS 8 // ¼­¹ö°¡ Çã¿ëÇÒ ÃÖ´ë µ¿½Ã Á¢¼Ó Å¬¶óÀÌ¾ğÆ® ¼ö
+// ì„œë²„ê°€ ì‹œë„í•  í¬íŠ¸ ë²ˆí˜¸ ë²”ìœ„ ì„¤ì •
+#define PORT_START 15410 // ì‹œì‘ í¬íŠ¸ ë²ˆí˜¸
+#define PORT_END   33333 // ì¢…ë£Œ í¬íŠ¸ ë²ˆí˜¸
 
-// Àü¿ª º¯¼ö ¼±¾ğ
-std::vector<SOCKET> client_sockets; // ¿¬°áµÈ Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏ ¸ñ·Ï
-std::mutex clients_mutex;           // Å¬¶óÀÌ¾ğÆ® ¸ñ·Ï Á¢±ÙÀ» º¸È£ÇÏ±â À§ÇÑ mutex
-volatile bool server_running = true; // ¼­¹ö ½ÇÇà »óÅÂ ÇÃ·¡±×
-SOCKET server_socket = INVALID_SOCKET; // ¼­¹ö ¼ÒÄÏ
+#define MAX_CLIENTS 8 // ì„œë²„ê°€ í—ˆìš©í•  ìµœëŒ€ ë™ì‹œ ì ‘ì† í´ë¼ì´ì–¸íŠ¸ ìˆ˜
 
-// ¸ğµç Å¬¶óÀÌ¾ğÆ®¿¡°Ô ¸Ş½ÃÁö¸¦ Àü¼ÛÇÏ´Â ÇÔ¼ö
+// ì „ì—­ ë³€ìˆ˜ ì„ ì–¸
+std::vector<SOCKET> client_sockets; // ì—°ê²°ëœ í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ ëª©ë¡
+std::mutex clients_mutex;           // í´ë¼ì´ì–¸íŠ¸ ëª©ë¡ ì ‘ê·¼ì„ ë³´í˜¸í•˜ê¸° ìœ„í•œ mutex
+volatile bool server_running = true; // ì„œë²„ ì‹¤í–‰ ìƒíƒœ í”Œë˜ê·¸
+SOCKET server_socket = INVALID_SOCKET; // ì„œë²„ ì†Œì¼“
+
+
+// ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ì—ê²Œ ë©”ì‹œì§€ë¥¼ ì „ì†¡í•˜ëŠ” í•¨ìˆ˜
 void broadcast_message(const std::string& message, SOCKET sender_socket = INVALID_SOCKET) {
     std::lock_guard<std::mutex> lock(clients_mutex);
     for (SOCKET client : client_sockets) {
         if (client != sender_socket) {
             int result = send(client, message.c_str(), static_cast<int>(message.length()), 0);
             if (result == SOCKET_ERROR) {
-                std::cerr << "send ¿À·ù: " << WSAGetLastError() << std::endl;
+                std::cerr << "send ì˜¤ë¥˜: " << WSAGetLastError() << std::endl;
             }
         }
     }
 }
 
-// °¢ Å¬¶óÀÌ¾ğÆ®¸¦ Ã³¸®ÇÏ´Â ¾²·¹µå ÇÔ¼ö
+// í´ë¼ì´ì–¸íŠ¸ ì²˜ë¦¬ í•¨ìˆ˜ ìˆ˜ì •
 void handle_client(SOCKET client_socket) {
     char buffer[1024];
+    // í´ë¼ì´ì–¸íŠ¸ë¡œë¶€í„° ì²« ë©”ì‹œì§€ë¥¼ ë‹‰ë„¤ì„ìœ¼ë¡œ ìˆ˜ì‹ 
+    char name_buffer[1024];
+    int name_bytes = recv(client_socket, name_buffer, sizeof(name_buffer) - 1, 0);
+    if (name_bytes <= 0) {
+        closesocket(client_socket);
+        return;
+    }
+    name_buffer[name_bytes] = '\0';
+    std::string nickname(name_buffer);
+
+    // ë§µì— ì†Œì¼“ê³¼ ë‹‰ë„¤ì„ ì €ì¥
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        client_names[client_socket] = nickname;
+        client_sockets.push_back(client_socket); // í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ ì¶”ê°€
+    }
+    // í˜„ì¬ ì ‘ì† í´ë¼ì´ì–¸íŠ¸ ìˆ˜ ì¶œë ¥
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        std::cout << "í˜„ì¬ ì ‘ì†ì¸ì›: " << client_sockets.size() << "ëª…" << std::endl;
+    }
     while (server_running) {
-        ZeroMemory(buffer, sizeof(buffer)); // ¹öÆÛ ÃÊ±âÈ­
-        int bytes = recv(client_socket, buffer, sizeof(buffer) - 1, 0); // Å¬¶óÀÌ¾ğÆ®·ÎºÎÅÍ µ¥ÀÌÅÍ ¼ö½Å
+        ZeroMemory(buffer, sizeof(buffer)); // ë²„í¼ ì´ˆê¸°í™”
+        int bytes = recv(client_socket, buffer, sizeof(buffer) - 1, 0); // í´ë¼ì´ì–¸íŠ¸ë¡œë¶€í„° ë°ì´í„° ìˆ˜ì‹ 
 
         if (bytes == SOCKET_ERROR) {
             int errCode = WSAGetLastError();
             if (errCode == WSAECONNRESET) {
-                std::cout << "À¯Àú¿ÍÀÇ ¿¬°áÀ» Á¾·áÇß½À´Ï´Ù." << std::endl;
+                std::cout << client_socket << "ë‹˜ê³¼ ì—°ê²°ì´ ëŠê²¼ìŠµë‹ˆë‹¤." << std::endl;
             }
             else {
-                std::cerr << "recv ¿À·ù: " << errCode << std::endl;
+                std::cerr << "recv ì˜¤ë¥˜: " << errCode << std::endl;
             }
             break;
         }
-
-        buffer[bytes] = '\0'; // ¹®ÀÚ¿­ ³¡ Ç¥½Ã
-        std::string msg(buffer);
-        std::cout << "[" << std::time(nullptr) << "] ¹ŞÀº ¸Ş½ÃÁö: " << msg << std::endl;
-
-        broadcast_message(msg, client_socket); // ´Ù¸¥ Å¬¶óÀÌ¾ğÆ®µé¿¡°Ô ¸Ş½ÃÁö Àü´Ş
+        std::string msg(buffer); // ì•„ë˜ëŠ” ì½˜ì†”ì— ë©”ì‹œì§€ë¥¼ í‘œì‹œí•˜ëŠ” ê²ƒì´ë‹¤.
+        std::cout << "[" << std::time(nullptr) << "]" << client_names[client_socket] << "(" << client_socket << ") : " << msg << std::endl;
+        std::string full_message = client_names[client_socket] + ": " + msg;
+        broadcast_message(full_message, client_socket); // ë©”ì‹œì§€ ì „ì†¡
     }
 
-    // Å¬¶óÀÌ¾ğÆ® ¿¬°á ÇØÁ¦ Ã³¸®
+    // í´ë¼ì´ì–¸íŠ¸ ì—°ê²° í•´ì œ ì²˜ë¦¬
     {
         std::lock_guard<std::mutex> lock(clients_mutex);
         client_sockets.erase(std::remove(client_sockets.begin(), client_sockets.end(), client_socket), client_sockets.end());
+        client_names.erase(client_socket);
     }
 
-    closesocket(client_socket); // Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏ ´İ±â
+    closesocket(client_socket); // í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ ë‹«ê¸°
 }
 
-// Ctrl+C µî Á¾·á ½ÅÈ£¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö
+
+// Ctrl+C ë“± ì¢…ë£Œ ì‹ í˜¸ë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜
 void signal_handler(int signal) {
     if (signal == SIGINT) {
-        std::cout << "\n¼­¹ö Á¾·á ¿äÃ» ¼ö½Å (Ctrl+C). Å¬¶óÀÌ¾ğÆ®µé¿¡°Ô °øÁö Áß..." << std::endl;
+        std::cout << "\nì„œë²„ ì¢…ë£Œ ìš”ì²­ ìˆ˜ì‹  (Ctrl+C). í´ë¼ì´ì–¸íŠ¸ë“¤ì—ê²Œ ê³µì§€ ì¤‘..." << std::endl;
         server_running = false;
 
-        broadcast_message("¼­¹ö°¡ Á¾·áµË´Ï´Ù. ¿¬°áÀÌ ²÷¾îÁı´Ï´Ù.\n");
+        broadcast_message("ì„œë²„ê°€ ì¢…ë£Œë©ë‹ˆë‹¤. ì—°ê²°ì´ ëŠì–´ì§‘ë‹ˆë‹¤.\n");
 
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
@@ -89,20 +116,20 @@ void signal_handler(int signal) {
             closesocket(server_socket);
         }
 
-        WSACleanup(); // Winsock ¸®¼Ò½º Á¤¸®
+        WSACleanup(); // Winsock ë¦¬ì†ŒìŠ¤ ì •ë¦¬
         std::exit(0);
     }
 }
 
-// »ç¿ë °¡´ÉÇÑ Æ÷Æ®¸¦ Ã£¾Æ ¼­¹ö ¼ÒÄÏ »ı¼ºÇÏ´Â ÇÔ¼ö
+// ì‚¬ìš© ê°€ëŠ¥í•œ í¬íŠ¸ë¥¼ ì°¾ì•„ ì„œë²„ ì†Œì¼“ ìƒì„±í•˜ëŠ” í•¨ìˆ˜
 SOCKET create_server_socket(int& used_port) {
     SOCKET sock;
     sockaddr_in server_addr;
 
     for (int port = PORT_START; port <= PORT_END; ++port) {
-        sock = socket(AF_INET, SOCK_STREAM, 0); // TCP ¼ÒÄÏ »ı¼º
+        sock = socket(AF_INET, SOCK_STREAM, 0); // TCP ì†Œì¼“ ìƒì„±
         if (sock == INVALID_SOCKET) {
-            std::cerr << "¼ÒÄÏ »ı¼º ½ÇÆĞ: " << WSAGetLastError() << std::endl;
+            std::cerr << "ì†Œì¼“ ìƒì„± ì‹¤íŒ¨: " << WSAGetLastError() << std::endl;
             continue;
         }
 
@@ -110,48 +137,48 @@ SOCKET create_server_socket(int& used_port) {
         server_addr.sin_addr.s_addr = INADDR_ANY;
         server_addr.sin_port = htons(port);
 
-        // ¹ÙÀÎµù ½Ãµµ
+        // ë°”ì¸ë”© ì‹œë„
         if (bind(sock, (SOCKADDR*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
             closesocket(sock);
             continue;
         }
 
-        // ¸®½º´× »óÅÂ·Î ÀüÈ¯
+        // ë¦¬ìŠ¤ë‹ ìƒíƒœë¡œ ì „í™˜
         if (listen(sock, SOMAXCONN) == SOCKET_ERROR) {
-            std::cerr << "¸®½º´× ½ÇÆĞ: " << WSAGetLastError() << std::endl;
+            std::cerr << "ë¦¬ìŠ¤ë‹ ì‹¤íŒ¨: " << WSAGetLastError() << std::endl;
             closesocket(sock);
             continue;
         }
 
-        used_port = port; // »ç¿ëÇÑ Æ÷Æ® ÀúÀå
-        return sock;      // »ı¼ºµÈ ¼ÒÄÏ ¹İÈ¯
+        used_port = port; // ì‚¬ìš©í•œ í¬íŠ¸ ì €ì¥
+        return sock;      // ìƒì„±ëœ ì†Œì¼“ ë°˜í™˜
     }
 
-    return INVALID_SOCKET; // ½ÇÆĞ ½Ã INVALID_SOCKET ¹İÈ¯
+    return INVALID_SOCKET; // ì‹¤íŒ¨ ì‹œ INVALID_SOCKET ë°˜í™˜
 }
 
-// ¸ŞÀÎ ÇÔ¼ö - ¼­¹ö ÃÊ±âÈ­ ¹× Å¬¶óÀÌ¾ğÆ® ¼ö¶ô ·çÇÁ
+// ë©”ì¸ í•¨ìˆ˜ - ì„œë²„ ì´ˆê¸°í™” ë° í´ë¼ì´ì–¸íŠ¸ ìˆ˜ë½ ë£¨í”„
 int main() {
-    signal(SIGINT, signal_handler); // Ctrl+C ½Ã Á¾·á Ã³¸® µî·Ï
+    signal(SIGINT, signal_handler); // Ctrl+C ì‹œ ì¢…ë£Œ ì²˜ë¦¬ ë“±ë¡
 
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        std::cerr << "WSAStartup ½ÇÆĞ: " << WSAGetLastError() << std::endl;
+        std::cerr << "WSAStartup ì‹¤íŒ¨: " << WSAGetLastError() << std::endl;
         return 1;
     }
 
     int selected_port = 0;
-    server_socket = create_server_socket(selected_port); // ¼­¹ö ¼ÒÄÏ »ı¼º ¹× Æ÷Æ® ¹ÙÀÎµù
+    server_socket = create_server_socket(selected_port); // ì„œë²„ ì†Œì¼“ ìƒì„± ë° í¬íŠ¸ ë°”ì¸ë”©
     if (server_socket == INVALID_SOCKET) {
-        std::cerr << "»ç¿ë °¡´ÉÇÑ Æ÷Æ®¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù (" << PORT_START << "~" << PORT_END << ")" << std::endl;
+        std::cerr << "ì‚¬ìš© ê°€ëŠ¥í•œ í¬íŠ¸ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤ (" << PORT_START << "~" << PORT_END << ")" << std::endl;
         WSACleanup();
         return 1;
     }
 
-    std::cout << "Ã¤ÆÃ ¼­¹ö°¡ Æ÷Æ® " << selected_port << "¿¡¼­ ´ë±â ÁßÀÔ´Ï´Ù (ÃÖ´ë " << MAX_CLIENTS << "¸í)." << std::endl;
-    std::cout << "¼­¹ö Á¾·á: Ctrl+C¸¦ ´©¸£¼¼¿ä." << std::endl;
+    std::cout << "ì±„íŒ… ì„œë²„ê°€ í¬íŠ¸ " << selected_port << "ì—ì„œ ëŒ€ê¸° ì¤‘ì…ë‹ˆë‹¤ (ìµœëŒ€ " << MAX_CLIENTS << "ëª…)." << std::endl;
+    std::cout << "ì„œë²„ ì¢…ë£Œ: Ctrl+Cë¥¼ ëˆ„ë¥´ì„¸ìš”." << std::endl;
 
-    // Å¬¶óÀÌ¾ğÆ® ¼ö¶ô ·çÇÁ
+    // í´ë¼ì´ì–¸íŠ¸ ìˆ˜ë½ ë£¨í”„
     while (server_running) {
         sockaddr_in client_addr;
         int addr_len = sizeof(client_addr);
@@ -159,7 +186,7 @@ int main() {
 
         if (client_socket == INVALID_SOCKET) {
             if (!server_running) break;
-            std::cerr << "Å¬¶óÀÌ¾ğÆ® ¿¬°á ½ÇÆĞ: " << WSAGetLastError() << std::endl;
+            std::cerr << "í´ë¼ì´ì–¸íŠ¸ ì—°ê²° ì‹¤íŒ¨: " << WSAGetLastError() << std::endl;
             continue;
         }
 
@@ -167,25 +194,24 @@ int main() {
             std::lock_guard<std::mutex> lock(clients_mutex);
 
             if (client_sockets.size() >= MAX_CLIENTS) {
-                std::string msg = "¼­¹ö¿¡ Á¢¼ÓÇÒ ¼ö ¾ø½À´Ï´Ù. (ÃÖ´ë Á¢¼Ó ÀÎ¿ø ÃÊ°ú)\n";
+                std::string msg = "ì„œë²„ì— ì ‘ì†í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. (ìµœëŒ€ ì ‘ì† ì¸ì› ì´ˆê³¼)\n";
                 send(client_socket, msg.c_str(), static_cast<int>(msg.length()), 0);
                 closesocket(client_socket);
                 continue;
             }
-
-            client_sockets.push_back(client_socket);
         }
 
-        std::cout << "»õ·Î¿î À¯Àú Á¢¼Ó" << std::endl;
+        std::cout << "ìƒˆë¡œìš´ ìœ ì € ì ‘ì†(" << client_socket << ")" << std::endl;
+
         std::thread t(handle_client, client_socket);
         t.detach();
     }
 
-    // ¼­¹ö Á¾·á Ã³¸®
+    // ì„œë²„ ì¢…ë£Œ ì²˜ë¦¬
     if (server_socket != INVALID_SOCKET) {
         closesocket(server_socket);
     }
     WSACleanup();
-    std::cout << "¼­¹ö°¡ Á¤»óÀûÀ¸·Î Á¾·áµÇ¾ú½À´Ï´Ù." << std::endl;
+    std::cout << "ì„œë²„ê°€ ì •ìƒì ìœ¼ë¡œ ì¢…ë£Œë˜ì—ˆìŠµë‹ˆë‹¤." << std::endl;
     return 0;
 }
