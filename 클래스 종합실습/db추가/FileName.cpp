@@ -35,10 +35,14 @@ int main() {
 #include <mysql/jdbc.h>
 #include <string>
 #include <memory>
+#include <Windows.h> // 한글 안깨지기 위한 해더파일
 
 using namespace std;
 
-int main() {
+int main() 
+{
+	SetConsoleOutputCP(CP_UTF8); // 한글 안깨지기 위한 설정
+
     try {
         sql::mysql::MySQL_Driver* driver = sql::mysql::get_driver_instance();
         const string server = "tcp://127.0.0.1:3306";
